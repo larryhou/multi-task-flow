@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:WindowedApplication xmlns:fx="http://ns.adobe.com/mxml/2009"
+					   xmlns:s="library://ns.adobe.com/flex/spark"
+					   xmlns:mx="library://ns.adobe.com/flex/mx"
+					   width="400" height="130" showStatusBar="false"
+					   creationComplete="appReadyHandler(event)">
+	<fx:Style source="MultiTask.css"/>
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	<mx:ProgressBar id="progress" left="10" right="10" top="10" label="PROGRESS: 0%" maximum="100"
+					minimum="0" mode="manual" />
+	<s:Label y="83" left="10" enabled="false" fontSize="15" text="FAIL:"/>
+	<s:Label y="83" left="162" enabled="false" fontSize="15" text="SUCCESS:"/>
+	<s:Label id="fail" y="83" left="58" width="71" fontSize="15" text="0"/>
+	<s:Label id="success" y="83" left="237" width="140" fontSize="15" text="0"/>
+	
+	<fx:Script>
+		<![CDATA[
+			import com.larrio.flow.MultiTaskFlow;
+			
+			import kernals.BytesLoaderKernal;
+			
+			import mx.events.FlexEvent;
+			
+			private var _multiTask:MultiTaskFlow;
+			
+			/* listen to user dragging */
+			protected function appReadyHandler(e:FlexEvent):void
+			{
+				this.addEventListener(NativeDragEvent.NATIVE_DRAG_ENTER,dragEnterHandler);
+				this.addEventListener(NativeDragEvent.NATIVE_DRAG_DROP, dragDropHandler);		
+			}
+					
+			/* 拖进处理 */
+			private function dragEnterHandler(event:NativeDragEvent):void
+			{
+				if (!event.clipboard.hasFormat(ClipboardFormats.FILE_LIST_FORMAT)) return;
+				
+				NativeDragManager.acceptDragDrop(this);
+			}
+			
+			/* 放开鼠标处理 */
+			private function dragDropHandler(event:NativeDragEvent):void
+			{
+				if (_multiTask && _multiTask.running) return;
+				var list:Array = event.clipboard.getData(ClipboardFormats.FILE_LIST_FORMAT) as Array;
+				
+				var reg:RegExp = /(txt|json)$/i;
+				var stream:FileStream = new FileStream();
+				
+				var datalist:Array = [];
+				for each(var file:File in list)
+				{
+					if(reg.test(file.extension))
+					{
+						stream.open(file,FileMode.READ);
+						var bytes:ByteArray = new ByteArray();
+						
+						stream.readBytes(bytes);
+						stream.close();
+						
+						var json:String = bytes.readMultiByte(bytes.length, "gb2312");						
+						var result:Array = JSON.parse(json) as Array;
+						if (!result) continue;
+						
+						datalist = datalist.concat(result);
+						trace(datalist.length);
+						
+					}
+				}
+				
+				_multiTask ||= new MultiTaskFlow(4, BytesLoaderKernal);
+				_multiTask.addEventListener(Event.CHANGE, changeHandler);
+				_multiTask.addEventListener(Event.COMPLETE, completeHandler);
+				_multiTask.execute(datalist);
+			}
+			
+			/* 所有图片加载完成处理 */
+			protected function completeHandler(event:Event):void
+			{
+				trace("ALL TASKS COMPLETE!!");
+			}
+			
+			/* 单个图片加载完成处理 */
+			protected function changeHandler(event:Event):void
+			{
+				var multiTask:MultiTaskFlow = event.currentTarget as MultiTaskFlow;
+				
+				progress.setProgress(multiTask.percent, 100);
+				progress.label = "PROGRESS: " + (multiTask.percent >> 0) + "%";
+				
+				fail.text = multiTask.numFail.toString();
+				success.text = multiTask.numSuccess.toString();
+				
+				var bytes:ByteArray = multiTask.currentKernel.result as ByteArray;
+				if(!bytes) return;
+				
+				var data:Object = multiTask.currentKernel.data;
+				var file:File = new File(File.desktopDirectory.nativePath + "/RTX/" + data.nick + ".jpg");
+				
+				var stream:FileStream = new FileStream();
+				stream.open(file, FileMode.WRITE);
+				stream.writeBytes(bytes);
+				stream.close();
+			}
+						
+		]]>
+	</fx:Script>
+</s:WindowedApplication>
