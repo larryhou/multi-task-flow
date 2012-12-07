@@ -69,6 +69,7 @@ package com.larrio.flow
 			
 			_length = 0;
 			_percent = 0;
+			_count = _index = 0;
 			
 			_running = false;
 			_numFail = _numSuccess = 0;

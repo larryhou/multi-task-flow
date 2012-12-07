@@ -23,13 +23,18 @@
 			
 			import mx.events.FlexEvent;
 			
+			private var _root:File;
 			private var _multiTask:MultiTaskFlow;
 			
 			/* listen to user dragging */
 			protected function appReadyHandler(e:FlexEvent):void
 			{
-				this.addEventListener(NativeDragEvent.NATIVE_DRAG_ENTER,dragEnterHandler);
-				this.addEventListener(NativeDragEvent.NATIVE_DRAG_DROP, dragDropHandler);		
+				_root = new File(File.desktopDirectory.nativePath + "/results/");
+				
+				write2log(new Date().toString(), false);
+				
+				addEventListener(NativeDragEvent.NATIVE_DRAG_ENTER,dragEnterHandler);
+				addEventListener(NativeDragEvent.NATIVE_DRAG_DROP, dragDropHandler);		
 			}
 					
 			/* 拖进处理 */
@@ -78,6 +83,11 @@
 					}
 				}
 				
+				progress.setProgress(0, 100);
+				progress.label = "PROGRESS: 0%";
+				
+				fail.text = success.text = "0";
+				
 				_multiTask ||= new MultiTaskFlow(4, BytesLoaderKernal);
 				_multiTask.addEventListener(Event.CHANGE, changeHandler);
 				_multiTask.addEventListener(Event.COMPLETE, completeHandler);
@@ -87,7 +97,7 @@
 			/* 所有图片加载完成处理 */
 			protected function completeHandler(event:Event):void
 			{
-				trace("ALL TASKS COMPLETE!!");
+				write2log("-------------------------------------------\r\n");
 			}
 			
 			/* 单个图片加载完成处理 */
@@ -102,14 +112,27 @@
 				success.text = multiTask.numSuccess.toString();
 				
 				var bytes:ByteArray = multiTask.currentKernel.result as ByteArray;
-				if(!bytes) return;
+				if(!bytes)
+				{
+					write2log(multiTask.currentKernel.data["url"]);
+					return;
+				}
 				
 				var data:Object = multiTask.currentKernel.data;
-				var file:File = new File(File.desktopDirectory.nativePath + "/RTX/" + data.nick + ".jpg");
+				var file:File = new File(_root.nativePath + "/" + data.nick + ".jpg");
 				
 				var stream:FileStream = new FileStream();
 				stream.open(file, FileMode.WRITE);
 				stream.writeBytes(bytes);
+				stream.close();
+			}
+			
+			/* 写入log文件 */
+			private function write2log(msg:String, appending:Boolean = true):void
+			{
+				var stream:FileStream = new FileStream();
+				stream.open(new File(_root.nativePath + "/log.txt"), appending? FileMode.APPEND : FileMode.WRITE);
+				stream.writeMultiByte(msg + "\r\n", "utf-8");
 				stream.close();
 			}
 						
