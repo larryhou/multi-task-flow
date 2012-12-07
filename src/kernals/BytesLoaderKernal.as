@@ -24,7 +24,7 @@ package kernals
 	[Event(name="complete", type="flash.events.Event")]
 
 	/**
-	 * 
+	 * 字节码加载器
 	 * @author larryhou
 	 * @createTime Dec 6, 2012 9:37:12 PM
 	 */
@@ -49,9 +49,10 @@ package kernals
 		 */		
 		public function execute(data:Object):void
 		{
-			_data = data;
 			_result = null;
-			if(!_data || !_data["url"])
+			_data = data || {};
+			
+			if(!_data["url"])
 			{
 				dispatchEvent(new ErrorEvent(ErrorEvent.ERROR, false, false, "NOT AVAILABLE URL!"));
 				return;
