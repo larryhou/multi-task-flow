@@ -8,4 +8,9 @@ global
 	font-family: Monaco;
 	font-size: 25;
 }
-	
+
+@font-face {
+	src: url("../libs/MONACO.TTF");
+	fontFamily: "Monaco";
+	cff: false;
+}	

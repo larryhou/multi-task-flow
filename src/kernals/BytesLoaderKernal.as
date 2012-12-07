@@ -10,6 +10,7 @@ package kernals
 	import flash.net.URLLoader;
 	import flash.net.URLLoaderDataFormat;
 	import flash.net.URLRequest;
+	import flash.text.ReturnKeyLabel;
 	import flash.utils.ByteArray;
 	
 	/**
@@ -50,13 +51,18 @@ package kernals
 		{
 			_data = data;
 			_result = null;
+			if(!_data || !_data["url"])
+			{
+				dispatchEvent(new ErrorEvent(ErrorEvent.ERROR, false, false, "NOT AVAILABLE URL!"));
+				return;
+			}
 			
 			var loader:URLLoader = new URLLoader();
 			loader.dataFormat = URLLoaderDataFormat.BINARY;
 			loader.addEventListener(Event.COMPLETE, completeHandler);
 			loader.addEventListener(IOErrorEvent.IO_ERROR, completeHandler);
 			loader.addEventListener(SecurityErrorEvent.SECURITY_ERROR, completeHandler);
-			loader.load(new URLRequest(_data.avatar));
+			loader.load(new URLRequest(_data["url"]));
 		}
 		
 		/**

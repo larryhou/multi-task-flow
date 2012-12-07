@@ -60,13 +60,21 @@
 						stream.readBytes(bytes);
 						stream.close();
 						
-						var json:String = bytes.readMultiByte(bytes.length, "gb2312");						
-						var result:Array = JSON.parse(json) as Array;
+						var json:String = bytes.readMultiByte(bytes.length, "utf-8");						
+						var result:Array;
+						
+						try
+						{
+							result = JSON.parse(json) as Array;
+						} 
+						catch(error:Error) 
+						{
+							continue;
+						}
+						
 						if (!result) continue;
 						
 						datalist = datalist.concat(result);
-						trace(datalist.length);
-						
 					}
 				}
 				
