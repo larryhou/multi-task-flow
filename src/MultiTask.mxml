@@ -91,6 +91,7 @@
 				_multiTask ||= new MultiTaskFlow(4, BytesLoaderKernal);
 				_multiTask.addEventListener(Event.CHANGE, changeHandler);
 				_multiTask.addEventListener(Event.COMPLETE, completeHandler);
+				_multiTask.addEventListener(ErrorEvent.ERROR, errorHandler);
 				_multiTask.execute(datalist);
 			}
 			
@@ -108,8 +109,8 @@
 				progress.setProgress(multiTask.percent, 100);
 				progress.label = "PROGRESS: " + (multiTask.percent >> 0) + "%";
 				
-				fail.text = multiTask.numFail.toString();
-				success.text = multiTask.numSuccess.toString();
+				fail.text = multiTask.errors.toString();
+				success.text = multiTask.success.toString();
 				
 				var bytes:ByteArray = multiTask.currentKernel.result as ByteArray;
 				if(!bytes)
@@ -135,7 +136,13 @@
 				stream.writeMultiByte(msg + "\r\n", "utf-8");
 				stream.close();
 			}
-						
+			
+			/* 任务执行失败处理 */
+			protected function errorHandler(e:ErrorEvent):void
+			{
+				write2log(e.text + "\r\n");
+			}
+			
 		]]>
 	</fx:Script>
 </s:WindowedApplication>

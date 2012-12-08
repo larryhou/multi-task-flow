@@ -4,6 +4,8 @@ package com.larrio.flow
 	import flash.events.Event;
 	import flash.events.EventDispatcher;
 	
+	import mx.core.IFactory;
+	
 	/**
 	 * 任务执行失败时派发 
 	 */	
@@ -32,14 +34,15 @@ package com.larrio.flow
 		private var _currentKernel:ITaskKernel;
 		private var _kernels:Vector.<ITaskKernel>;
 		
-		private var _numFail:uint;
-		private var _numSuccess:uint;
+		private var _errors:uint;
+		private var _success:uint;
 		
 		private var _percent:Number;
 		
 		private var _index:uint;
-		private var _count:uint;
-		private var _length:uint;
+		private var _completedTasks:uint;
+		
+		private var _numTasks:uint;
 		private var _running:Boolean;
 		
 		/**
@@ -67,12 +70,12 @@ package com.larrio.flow
 			_queue = [];
 			_result = [];
 			
-			_length = 0;
+			_numTasks = 0;
 			_percent = 0;
-			_count = _index = 0;
+			_completedTasks = _index = 0;
 			
 			_running = false;
-			_numFail = _numSuccess = 0;
+			_errors = _success = 0;
 			for (var i:int = 0; i < _kernels.length; i++) unlisten(_kernels[i]);
 		}
 		
@@ -91,7 +94,7 @@ package com.larrio.flow
 				return;
 			}			
 			
-			_length = _queue.length;
+			_numTasks = _queue.length;
 			for (var i:int = 0; i < _kernels.length; i++) if(!runNextTask(_kernels[i])) break;
 		}
 		
@@ -111,10 +114,18 @@ package com.larrio.flow
 				return true;
 			}
 			else
-			if(_count >= _length)
+			if (_completedTasks >= _numTasks)
 			{
 				_running = false;
-				dispatchEvent(new Event(Event.COMPLETE));				
+				
+				if (_success > 0)
+				{
+					dispatchEvent(new Event(Event.COMPLETE));				
+				}
+				else
+				{
+					dispatchEvent(new ErrorEvent(ErrorEvent.ERROR, false, false, "NONE TASK HAS BEEN DONE SUCCESSFULLY!"));
+				}
 			}
 			
 			return false;
@@ -145,26 +156,26 @@ package com.larrio.flow
 		 */		
 		private function completeHandler(e:Event):void
 		{
-			if (e.type == ErrorEvent.ERROR)
+			_currentKernel = e.currentTarget as ITaskKernel;
+			unlisten(_currentKernel);
+			
+			if (e.type == Event.COMPLETE)
 			{
-				_numFail++;
+				_success++;
+				
+				_result ||= [];
+				_result.push(_currentKernel.result);
 			}
 			else
 			{
-				_numSuccess++;
+				_errors++;
 			}
 			
-			_count++;
-			_currentKernel = e.currentTarget as ITaskKernel;
-			
-			unlisten(_currentKernel);
-			
-			_result ||= [];
-			_currentKernel.result && _result.push(_currentKernel.result);
-			
-			_percent = (_count / _length) * 100;
+			_completedTasks++;						
+			_percent = (_completedTasks / _numTasks) * 100;
 			
 			dispatchEvent(new Event(Event.CHANGE));
+			
 			runNextTask(_currentKernel);
 		}		
 
@@ -176,16 +187,16 @@ package com.larrio.flow
 		/**
 		 * 子任务执行失败的个数
 		 */		
-		public function get numFail():uint { return _numFail; }
+		public function get errors():uint { return _errors; }
 
 		/**
 		 * 子任务执行成功的个数 
 		 */		
-		public function get numSuccess():uint { return _numSuccess; }
+		public function get success():uint { return _success; }
 		
 		/**
 		 * 运行时传参对象：数组对象
-		 */		
+		 */
 		public function get data():Object { return _queue; }
 
 		/**
@@ -201,12 +212,17 @@ package com.larrio.flow
 		/**
 		 * 总的任务数量
 		 */		
-		public function get length():uint { return _length; }
+		public function get numTasks():uint { return _numTasks; }
 
 		/**
 		 * 当前任务是否正在执行
 		 */		
 		public function get running():Boolean { return _running; }
-		
+
+		/**
+		 * 已完成的任务个数：errors+success
+		 */		
+		public function get completedTasks():uint { return _completedTasks; }
+
 	}
 }
